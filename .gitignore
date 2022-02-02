@@ -1,0 +1,3 @@
+#ignore all applications and their info
+*.exe
+*.dat
