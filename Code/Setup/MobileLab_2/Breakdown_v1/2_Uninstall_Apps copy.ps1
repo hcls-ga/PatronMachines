@@ -21,10 +21,12 @@
 #region Script Parameters
 #---------------------------------------------------------[Script Parameters]------------------------------------------------------
 
+[CmdletBinding()]
+
 Param (
-  #Script parameters go here
+  [Parameter(Mandatory=$true,Position=0)][string]$LogPath,
+  [Parameter(Mandatory=$true,Position=1)][string]$LogName
 )
-#endregion
 
 #region Initialisations
 #---------------------------------------------------------[Initialisations]--------------------------------------------------------
@@ -44,46 +46,24 @@ $sScriptVersion = "1.0"
 
 #Log File Info
 $sLogPath = "C:\Windows\Temp"
-$sLogName = "<script_name>.log"
+$sLogName = "2_Uninstall_Apps.log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
-#endregion
-
-#region Functions
-#-----------------------------------------------------------[Functions]------------------------------------------------------------
-
-<#
-Function <FunctionName>{
-  Param()
-  
-  Begin{
-    Log-Write -LogPath $sLogFile -LineValue "<description of what is going on>..."
-  }
-  
-  Process{
-    Try{
-      <code goes here>
-    }
-    
-    Catch{
-      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
-      Break
-    }
-  }
-  
-  End{
-    If($?){
-      Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
-      Log-Write -LogPath $sLogFile -LineValue " "
-    }
-  }
-}
-#>
 #endregion
 
 #region Execution
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
 Start-Log -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
-#Script Execution goes here
+foreach ($app in (Get-Content "..\installed windows app.txt")) {
+  try {
+    Write-LogInfo -LogPath $sLogFile -Message "Trying to uninstall $app" $true $true
+    Remove-AppxPackage -Package $app
+    Start-Process ..\Apps.ps1 -Wait
+  }
+  catch {
+    Write-LogError -LogPath $sLogFile -Message "Unable to Uninstall $app "  $true $true
+    Write-LogError -LogPath $sLogFile -Message "Manually uninstall or check if it is installed"  $true $true
+  }
+}
 Stop-Log -LogPath $sLogFile
 #endregion

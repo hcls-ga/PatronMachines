@@ -18,14 +18,6 @@
 .EXAMPLE
   <Example goes here. Repeat this attribute for more than one example>
 #>
-#region Script Parameters
-#---------------------------------------------------------[Script Parameters]------------------------------------------------------
-
-Param (
-  #Script parameters go here
-)
-#endregion
-
 #region Initialisations
 #---------------------------------------------------------[Initialisations]--------------------------------------------------------
 
@@ -44,46 +36,22 @@ $sScriptVersion = "1.0"
 
 #Log File Info
 $sLogPath = "C:\Windows\Temp"
-$sLogName = "<script_name>.log"
+$sLogName = "5_Set_AutoLogin.log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
-#endregion
-
-#region Functions
-#-----------------------------------------------------------[Functions]------------------------------------------------------------
-
-<#
-Function <FunctionName>{
-  Param()
-  
-  Begin{
-    Log-Write -LogPath $sLogFile -LineValue "<description of what is going on>..."
-  }
-  
-  Process{
-    Try{
-      <code goes here>
-    }
-    
-    Catch{
-      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
-      Break
-    }
-  }
-  
-  End{
-    If($?){
-      Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
-      Log-Write -LogPath $sLogFile -LineValue " "
-    }
-  }
-}
-#>
 #endregion
 
 #region Execution
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
 Start-Log -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
-#Script Execution goes here
+
+$RegPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
+$DefaultUsername = $env:COMPUTERNAME
+$DefaultPassword = "tirepower"
+
+Set-ItemProperty $RegPath "AutoAdminLogon" -Value "1" -type String 
+Set-ItemProperty $RegPath "DefaultUsername" -Value "$DefaultUsername" -type String 
+Set-ItemProperty $RegPath "DefaultPassword" -Value "$DefaultPassword" -type String
+
 Stop-Log -LogPath $sLogFile
 #endregion

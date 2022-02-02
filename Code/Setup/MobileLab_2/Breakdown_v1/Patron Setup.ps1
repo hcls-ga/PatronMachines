@@ -18,13 +18,6 @@
 .EXAMPLE
   <Example goes here. Repeat this attribute for more than one example>
 #>
-#region Script Parameters
-#---------------------------------------------------------[Script Parameters]------------------------------------------------------
-
-Param (
-  #Script parameters go here
-)
-#endregion
 
 #region Initialisations
 #---------------------------------------------------------[Initialisations]--------------------------------------------------------
@@ -41,24 +34,7 @@ catch
 {
     try
 	{
-		# Removed in version 1.3
-		
-		# Define Credentials (Yes, I know this is bad practice. The account is super locked down anywasy so shush)
-		$userName = 'hcls\sspcircleft'
-		$userPassword = 'PHXADMIN'
-
-		
-		# Crete credential Object
-		$secureString = $userPassword | ConvertTo-SecureString -AsPlainText -Force 
-		$credentialObejct = New-Object System.Management.Automation.PSCredential -ArgumentList $userName, $secureString
-		
-		
-		#Create temp drive mapped to a network share
-		New-PSDrive -Name "PS" -PSProvider "FileSystem" -Root "\\10.10.1.4\Patrons\scripts" -Credential $credentialObejct
-		
-		Copy-Item -Path PS:\PSLogging -Destination "C:\Windows\System32\WindowsPowerShell\v1.0\Modules\PSLogging" -Recurse
-		Remove-PSDrive -Name "PS"
-		Import-Module PSLogging
+		.\1_Install_PSL.ps1
 	}
 	catch
 	{
@@ -74,7 +50,7 @@ catch
 #Script Info
 ##Version
 $sScriptVersion = "1.0"
-$sScriptName = "Patron Setup"
+$sScriptName = "Patron_Setup"
 ##Log File Info
 $sLogPath = "C:\Windows\Temp"
 $sLogName = $sScriptName+"_"+(Get-Date).Day+"-"+(Get-Date).Month+"-"+(Get-Date).Year+".log"
@@ -111,86 +87,46 @@ if(-not(Check-IsElevated)){
 
 }else{
   Write-LogInfo $sLogFile "Thanks for running this as admin <3" $true $true
+
   #uninstalling bloatware
-  foreach ($app in (Get-Content ".\installed windows app.txt")) {
-    try {
-      Write-LogInfo -LogPath $sLogFile -Message "Trying to uninstall $app" $true $true
-      Remove-AppxPackage -Package $app
-      Start-Process .\Apps.ps1 -Wait
-    }
-    catch {
-      Write-LogError -LogPath $sLogFile -Message "Unable to Uninstall $app "  $true $true
-      Write-LogError -LogPath $sLogFile -Message "Manually uninstall or check if it is installed"  $true $true
-    }
-  }
-
-
-  Write-LogError -LogPath $sLogFile -Message "Enabling NetFx3" $true $true
-  Dism.exe /Online /Enable-Feature /FeatureName:NetFx3 /All
-
-  Write-LogInfo -LogPath $sLogFile -Message "Starting Office" $true $true
-  Start-Process .\Office\Run-Me.cmd -Wait
-
-  Write-LogInfo -LogPath $sLogFile -Message "starting the registration" $true $true
-  cscript "C:\Program Files\Microsoft Office\Office16\ospp.vbs" /act
-
-
-
-  
-  Stop-Service -Name "bits"
-  Set-Service -Name "bits" -StartupType Disabled
-
-  Stop-Service -Name "wuauserv"
-  Set-Service -Name "wuauserv" -StartupType Disabled
-
-  Stop-Service -Name "dosvc"
-  Set-Service -Name "dosvc" -StartupType Disabled
-  
-  Disable-ScheduledTask -TaskPath "\Microsoft\windows\WindowsUpdate\Scheduled Start"
-  Unregister-ScheduledTask -TaskPath "\Microsoft\windows\WindowsUpdate\sih"
-  Unregister-ScheduledTask -TaskPath "\Microsoft\windows\WindowsUpdate\sihboot"
-
-  cmd.exe /c "mklink '%USERPROFILE%\Desktop\Screen Capture" "C:\Windows\System32\SnippingTool.exe'"
-
-  powercfg -h off
-
-  Set-NetFirewallProfile -Enabled False
-  netsh firewall set notifications mode = disable profile = all
-  
-  Start-Process .\ChromeSetup.exe -Wait
-  Start-Process .\ScreenConnect.exe -Wait
   try {
-    if (-not (Test-Path -Path "C:\Program Files\Centurion\client\csgui.exe")) {
-      Start-Process .\SS.exe -Wait
-    }
+    .\2_Uninstall_Apps.ps1
+  }
+  catch {
+    Write-LogError -LogPath $sLogFile -Message "Unable to Run $_ " $true $true
+  }
   
-    xcopy /E bginfo\* C:\bginfo
-    xcopy C:\bginfo\Startup.lnk "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\"
-    schtasks /create /ru "nt authority\system" /tn "WU" /tr "C:\bginfo\WU.cmd" /rl highest /sc onlogon /F
-    schtasks /create /ru "nt authority\system" /tn "WUI" /tr "C:\bginfo\WU.cmd" /rl highest /sc onidle /I 10 /F
-    schtasks /create /ru "nt authority\system" /tn "WUH" /tr "C:\bginfo\WU.cmd" /rl highest /sc hourly /F
+  #Set Configuration
+  try {
+    .\3_Set_Configs.ps1
   }
   catch {
     Write-LogError -LogPath $sLogFile -Message "Unable to Run $_ " $true $true
   }
 
   try {
-    net user /delete defaultuser0
-    del /F /Q C:\ctsrcpgn.txt
-    del /F /Q C:\nsislog.txt
-    del /F /Q "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Smart Shield"
+    .\4_Insatll_Apps.ps1
+  }
+  catch {
+    Write-LogError -LogPath $sLogFile -Message "Unable to Run $_ " $true $true
+  }
+
+  try {
+    .\5_Set_AutoLogin.ps1
   }
   catch {
     Write-LogError -LogPath $sLogFile -Message "Unable to delete $_" $true $true
   }
 
   try {
-    $RegPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
-    $DefaultUsername = $env:COMPUTERNAME
-    $DefaultPassword = "tirepower"
-    Set-ItemProperty $RegPath "AutoAdminLogon" -Value "1" -type String 
-    Set-ItemProperty $RegPath "DefaultUsername" -Value "$DefaultUsername" -type String 
-    Set-ItemProperty $RegPath "DefaultPassword" -Value "$DefaultPassword" -type String
+    .\6_Set_BGInfo.ps1
+  }
+  catch {
+    Write-LogError -LogPath $sLogFile -Message "Unable to set the Automatic login" $true $true
+  }
+
+  try {
+    .\7_Clean_All.ps1
   }
   catch {
     Write-LogError -LogPath $sLogFile -Message "Unable to set the Automatic login" $true $true

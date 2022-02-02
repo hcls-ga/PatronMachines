@@ -18,14 +18,6 @@
 .EXAMPLE
   <Example goes here. Repeat this attribute for more than one example>
 #>
-#region Script Parameters
-#---------------------------------------------------------[Script Parameters]------------------------------------------------------
-
-Param (
-  #Script parameters go here
-)
-#endregion
-
 #region Initialisations
 #---------------------------------------------------------[Initialisations]--------------------------------------------------------
 
@@ -44,46 +36,20 @@ $sScriptVersion = "1.0"
 
 #Log File Info
 $sLogPath = "C:\Windows\Temp"
-$sLogName = "<script_name>.log"
+$sLogName = "7_Clean_All.log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
-#endregion
-
-#region Functions
-#-----------------------------------------------------------[Functions]------------------------------------------------------------
-
-<#
-Function <FunctionName>{
-  Param()
-  
-  Begin{
-    Log-Write -LogPath $sLogFile -LineValue "<description of what is going on>..."
-  }
-  
-  Process{
-    Try{
-      <code goes here>
-    }
-    
-    Catch{
-      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
-      Break
-    }
-  }
-  
-  End{
-    If($?){
-      Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
-      Log-Write -LogPath $sLogFile -LineValue " "
-    }
-  }
-}
-#>
 #endregion
 
 #region Execution
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
 Start-Log -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
-#Script Execution goes here
+
+net user /delete defaultuser0
+
+del /F /Q C:\ctsrcpgn.txt
+del /F /Q C:\nsislog.txt
+del /F /Q "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Smart Shield"
+
 Stop-Log -LogPath $sLogFile
 #endregion

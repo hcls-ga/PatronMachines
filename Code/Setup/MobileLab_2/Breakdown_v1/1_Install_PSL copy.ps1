@@ -18,72 +18,31 @@
 .EXAMPLE
   <Example goes here. Repeat this attribute for more than one example>
 #>
-#region Script Parameters
-#---------------------------------------------------------[Script Parameters]------------------------------------------------------
-
-Param (
-  #Script parameters go here
-)
-#endregion
-
-#region Initialisations
-#---------------------------------------------------------[Initialisations]--------------------------------------------------------
-
-#Set Error Action to Silently Continue
-$ErrorActionPreference = "SilentlyContinue"
-
-#Import Modules & Snap-ins
-Import-Module PSLogging
-#endregion
-
-#region Declarations
-#----------------------------------------------------------[Declarations]----------------------------------------------------------
-
-#Script Version
-$sScriptVersion = "1.0"
-
-#Log File Info
-$sLogPath = "C:\Windows\Temp"
-$sLogName = "<script_name>.log"
-$sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
-#endregion
-
-#region Functions
-#-----------------------------------------------------------[Functions]------------------------------------------------------------
-
-<#
-Function <FunctionName>{
-  Param()
-  
-  Begin{
-    Log-Write -LogPath $sLogFile -LineValue "<description of what is going on>..."
-  }
-  
-  Process{
-    Try{
-      <code goes here>
-    }
-    
-    Catch{
-      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
-      Break
-    }
-  }
-  
-  End{
-    If($?){
-      Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
-      Log-Write -LogPath $sLogFile -LineValue " "
-    }
-  }
-}
-#>
-#endregion
-
 #region Execution
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
-Start-Log -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
-#Script Execution goes here
-Stop-Log -LogPath $sLogFile
-#endregion
+try
+{
+  # Removed in version 1.3
+  
+  # Define Credentials (Yes, I know this is bad practice. The account is super locked down anywasy so shush)
+  $userName = 'hcls\sspcircleft'
+  $userPassword = 'PHXADMIN'
+  
+  # Crete credential Object
+  $secureString = $userPassword | ConvertTo-SecureString -AsPlainText -Force 
+  $credentialObejct = New-Object System.Management.Automation.PSCredential -ArgumentList $userName, $secureString
+  
+  
+  #Create temp drive mapped to a network share
+  New-PSDrive -Name "PS" -PSProvider "FileSystem" -Root "\\10.10.1.4\Patrons\scripts" -Credential $credentialObejct
+  
+  Copy-Item -Path PS:\PSLogging -Destination "C:\Windows\System32\WindowsPowerShell\v1.0\Modules\PSLogging" -Recurse
+  Remove-PSDrive -Name "PS"
+  Import-Module PSLogging
+}
+catch
+{
+  Write-Host "Unable to import logging"
+  [Environment]::Exit(1)
+}

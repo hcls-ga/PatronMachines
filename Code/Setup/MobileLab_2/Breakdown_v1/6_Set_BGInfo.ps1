@@ -18,14 +18,6 @@
 .EXAMPLE
   <Example goes here. Repeat this attribute for more than one example>
 #>
-#region Script Parameters
-#---------------------------------------------------------[Script Parameters]------------------------------------------------------
-
-Param (
-  #Script parameters go here
-)
-#endregion
-
 #region Initialisations
 #---------------------------------------------------------[Initialisations]--------------------------------------------------------
 
@@ -44,46 +36,24 @@ $sScriptVersion = "1.0"
 
 #Log File Info
 $sLogPath = "C:\Windows\Temp"
-$sLogName = "<script_name>.log"
+$sLogName = "4_Set_BGInfo.log"
 $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
-#endregion
-
-#region Functions
-#-----------------------------------------------------------[Functions]------------------------------------------------------------
-
-<#
-Function <FunctionName>{
-  Param()
-  
-  Begin{
-    Log-Write -LogPath $sLogFile -LineValue "<description of what is going on>..."
-  }
-  
-  Process{
-    Try{
-      <code goes here>
-    }
-    
-    Catch{
-      Log-Error -LogPath $sLogFile -ErrorDesc $_.Exception -ExitGracefully $True
-      Break
-    }
-  }
-  
-  End{
-    If($?){
-      Log-Write -LogPath $sLogFile -LineValue "Completed Successfully."
-      Log-Write -LogPath $sLogFile -LineValue " "
-    }
-  }
-}
-#>
 #endregion
 
 #region Execution
 #-----------------------------------------------------------[Execution]------------------------------------------------------------
 
 Start-Log -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
-#Script Execution goes here
+
+xcopy /E ..\bginfo\* C:\bginfo
+
+xcopy C:\bginfo\Startup.lnk "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\"
+
+schtasks /create /ru "nt authority\system" /tn "WU" /tr "C:\bginfo\WU.cmd" /rl highest /sc onlogon /F
+
+schtasks /create /ru "nt authority\system" /tn "WUI" /tr "C:\bginfo\WU.cmd" /rl highest /sc onidle /I 10 /F
+
+schtasks /create /ru "nt authority\system" /tn "WUH" /tr "C:\bginfo\WU.cmd" /rl highest /sc hourly /F
+
 Stop-Log -LogPath $sLogFile
 #endregion
