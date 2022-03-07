@@ -18,15 +18,6 @@
 .EXAMPLE
   <Example goes here. Repeat this attribute for more than one example>
 #>
-#region Script Parameters
-#---------------------------------------------------------[Script Parameters]------------------------------------------------------
-
-[CmdletBinding()]
-
-Param (
-  [Parameter(Mandatory=$true,Position=0)][string]$LogPath,
-  [Parameter(Mandatory=$true,Position=1)][string]$LogName
-)
 
 #region Initialisations
 #---------------------------------------------------------[Initialisations]--------------------------------------------------------
@@ -57,7 +48,7 @@ Start-Log -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
 foreach ($app in (Get-Content "..\installed windows app.txt")) {
   try {
     Write-LogInfo -LogPath $sLogFile -Message "Trying to uninstall $app" $true $true
-    Remove-AppxPackage -Package $app
+    Remove-AppxPackage -Package $app -Verbose >> $sLogFile
     Start-Process ..\Apps.ps1 -Wait
   }
   catch {

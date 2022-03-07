@@ -89,6 +89,7 @@ if(-not(Check-IsElevated)){
   Write-LogInfo $sLogFile "Thanks for running this as admin <3" $true $true
 
   #uninstalling bloatware
+  Write-LogInfo $sLogFile "Unistalling Apps" $true $true
   try {
     .\2_Uninstall_Apps.ps1
   }
@@ -97,6 +98,7 @@ if(-not(Check-IsElevated)){
   }
   
   #Set Configuration
+  Write-LogInfo $sLogFile "Setting Configurations" $true $true
   try {
     .\3_Set_Configs.ps1
   }
@@ -104,6 +106,8 @@ if(-not(Check-IsElevated)){
     Write-LogError -LogPath $sLogFile -Message "Unable to Run $_ " $true $true
   }
 
+#Installing aoolications
+Write-LogInfo $sLogFile "Installing Appilications" $true $true
   try {
     .\4_Insatll_Apps.ps1
   }
@@ -111,25 +115,31 @@ if(-not(Check-IsElevated)){
     Write-LogError -LogPath $sLogFile -Message "Unable to Run $_ " $true $true
   }
 
+  #Setting auto-login
+  Write-LogInfo $sLogFile "Setting Auto-login" $true $true
   try {
     .\5_Set_AutoLogin.ps1
   }
   catch {
-    Write-LogError -LogPath $sLogFile -Message "Unable to delete $_" $true $true
+    Write-LogError -LogPath $sLogFile -Message "Unable to Run $_ " $true $true
   }
 
+  #Setup BGInfo
+  Write-LogInfo $sLogFile "Setting up BGInfo" $true $true
   try {
     .\6_Set_BGInfo.ps1
   }
   catch {
-    Write-LogError -LogPath $sLogFile -Message "Unable to set the Automatic login" $true $true
+    Write-LogError -LogPath $sLogFile -Message "Unable to Run $_ " $true $true
   }
 
+  #Cleaning Up
+  Write-LogInfo $sLogFile "Cleaning up" $true $true
   try {
     .\7_Clean_All.ps1
   }
   catch {
-    Write-LogError -LogPath $sLogFile -Message "Unable to set the Automatic login" $true $true
+    Write-LogError -LogPath $sLogFile -Message "Unable to Run $_ " $true $true
   }
 }
 Stop-Log -LogPath $sLogFile

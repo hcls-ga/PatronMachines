@@ -55,11 +55,11 @@ $sLogFile = Join-Path -Path $sLogPath -ChildPath $sLogName
 
 Start-Log -LogPath $sLogPath -LogName $sLogName -ScriptVersion $sScriptVersion
 
-Start-Process .\ChromeSetup.exe -Wait
+Start-Process .\ChromeSetup.exe -Wait -Verbose >> $sLogFile
 
-Start-Process .\ScreenConnect.exe -Wait
+Start-Process .\ScreenConnect.exe -Wait -Verbose >> $sLogFile
 
-Start-Process .\SS.exe -Wait
+Start-Process .\SS.exe -Wait -Verbose >> $sLogFile
 
 Stop-Log -LogPath $sLogFile
 #endregion
