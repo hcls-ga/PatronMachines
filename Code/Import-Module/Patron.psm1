@@ -228,37 +228,8 @@ Process {
 }
 }
 
-function Get-Apps {
-    <#
-    .SYNOPSIS
-    
+function Install-Apps {
 
-    .DESCRIPTION
-    
-
-    .PARAMETER LogPath
-    
-
-    .PARAMETER LogName
-    
-
-    .PARAMETER ParameterName
-
-    .INPUTS
-    
-
-    .OUTPUTS
-
-    .NOTES
-    Version:        1.0
-    Author:         Dylan Young
-    Creation Date:  
-    Purpose/Change: 
-
-    .EXAMPLE
-    
-    
-    #>
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$false,
@@ -331,7 +302,7 @@ function Get-Apps {
             return $true
         })]
         [System.IO.FileInfo] 
-        $OfficeLoc = '.\.\Office\Run-Me.cmd'
+        $OfficeLoc = '.\Office\Run-Me.cmd'
     )
     begin{
 
@@ -372,4 +343,56 @@ function Get-Apps {
         }
     }
     
+}
+
+function Verify-WindowsUpdate {
+    if ( (Get-Service -Name 'bits' | Select StartType ).StartType -eq 'Disabled') {
+        return $false
+    }
+    return $true
+}
+
+function Remove-WindowsUpdate {
+
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$false,Position=0)] [bool] $DisableSchTasks = $false #add this later
+    )
+
+    if (Verify-WindowsUpdateDisabled) {
+        Stop-Service -Name "bits"
+        Set-Service -Name "bits" -StartupType Disabled
+
+        Stop-Service -Name "wuauserv"
+        Set-Service -Name "wuauserv" -StartupType Disabled
+
+        Stop-Service -Name "dosvc"
+        Set-Service -Name "dosvc" -StartupType Disabled
+    }
+    
+}
+
+function Install-Desktop {
+    if ( -not (Test-Path -Path C:\bginfo)) {
+        xcopy /E bginfo\* C:\bginfo
+        xcopy C:\bginfo\Startup.lnk "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\"
+        schtasks /create /ru "nt authority\system" /tn "WU" /tr "C:\bginfo\WU.cmd" /rl highest /sc onlogon /F
+        schtasks /create /ru "nt authority\system" /tn "WUI" /tr "C:\bginfo\WU.cmd" /rl highest /sc onidle /I 10 /F
+        schtasks /create /ru "nt authority\system" /tn "WUH" /tr "C:\bginfo\WU.cmd" /rl highest /sc hourly /F
+    }    
+}
+
+function Install-AutoLogin {
+
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$false,Position=0)] [bool] $UserName = $env:COMPUTERNAME,
+        [Parameter(Mandatory=$false,Position=0)] [bool] $Password = 'tirepower'
+    )
+    
+    $RegPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
+    Set-ItemProperty $RegPath "AutoAdminLogon" -Value "1" -type String 
+    Set-ItemProperty $RegPath "DefaultUsername" -Value "$DefaultUsername" -type String 
+    Set-ItemProperty $RegPath "DefaultPassword" -Value "$DefaultPassword" -type String
+
 }
