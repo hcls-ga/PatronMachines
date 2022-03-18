@@ -4,41 +4,12 @@
 
 Set-StrictMode -Version Latest
 
-#Finish this script
+#----------------------------------------------------------[Applications]-----------------------------------------------------------
+
 function List-Apps {
-    <#
-    .SYNOPSIS
-    
-
-    .DESCRIPTION
-    
-
-    .PARAMETER LogPath
-    
-
-    .PARAMETER LogName
-    
-
-    .PARAMETER ParameterName
-
-    .INPUTS
-    
-
-    .OUTPUTS
-
-    .NOTES
-    Version:        1.0
-    Author:         Dylan Young
-    Creation Date:  
-    Purpose/Change: 
-
-    .EXAMPLE
-    
-    
-    #>
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$false,Position=0)] [string] $AppType
+        [Parameter(Mandatory=$false,Position=0)] [string] $AppType = "All" #This will come later to do different types of apps
     )
 
     Process {
@@ -48,7 +19,7 @@ function List-Apps {
     }
 }
 
-function Remove-Apps {
+function Uninstall-PreApps {
 <#
 .SYNOPSIS
     Remove built-in apps (modern apps) from Windows 10.
@@ -87,7 +58,19 @@ Begin {
         "Microsoft.WindowsCalculator", 
         "Microsoft.WindowsCommunicationsApps", # Mail, Calendar etc
         "Microsoft.WindowsSoundRecorder", 
-        "Microsoft.WindowsStore"
+        "Microsoft.WindowsStore",
+        "Microsoft.NET.Native.Framework.2.2",
+        "Microsoft.NET.Native.Runtime.2.2",
+        "Microsoft.NET.Native.Framework.2.1",
+        "Microsoft.NET.Native.Runtime.2.1",
+        "Microsoft.NET.Native.Framework.1.7",
+        "Microsoft.NET.Native.Runtime.1.7",
+        "DellInc.DellUpdate",
+        "DellInc.DellSupportAssistforPCs",
+        "DellInc.DellPowerManager",
+        "DellInc.DellDigitalDelivery",
+        "DellInc.DellCustomerConnect",
+        "DellInc.MyDell"
     ))
 
     # Windows 10 version 1809
@@ -150,7 +133,7 @@ Process {
         Write-LogEntry -Value "Processing appx package: $($App)"
 
         # If application name not in appx package white list, remove AppxPackage and AppxProvisioningPackage
-        if (($App -in $WhiteListedApps)) {
+        if (($App -in $WhiteListedApps) -or ('Dell' -in $App)) {
             Write-LogEntry -Value "Skipping excluded application package: $($App)"
         }
         else {
@@ -228,6 +211,50 @@ Process {
 }
 }
 
+function Verify-Chrome {
+    $ChromeLoc1 = 'C:\Program Files\Google\Chrome\Application\chrome.exe'
+    $ChromeLoc2 = 'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe'
+    $ChromeLoc3 = '%LocalAppData%\Google\Chrome\Application\chrome.exe'
+    
+    if ((Test-Path -Path $ChromeLoc1 -PathType Leaf) -or (Test-Path -Path $ChromeLoc2 -PathType Leaf) -or (Test-Path -Path $ChromeLoc13 -PathType Leaf)) {
+        return $true
+    }
+    else {
+        return $false
+    }
+}
+
+function Verify-SS {
+    $SSLoc = 'C:\Program Files\Centurion Technologies\Client\ctsrgui.exe'
+    
+    if ((Test-Path -Path $SSLoc1 -PathType Leaf)) {
+        return $true
+    }
+    else {
+        return $false
+    }
+}
+
+function Verify-SC {
+    $SCLoc = 'C:\Program Files (x86)\ScreenConnect Client *\ScreenConnect.WindowsClient.exe'
+    
+    if ((Test-Path -Path $SCLoc -PathType Leaf)) {
+        return $true
+    }
+    else {
+        return $false
+    }
+}
+
+function Verify-AppInstall {
+    if (Verify-Chrome -and Verify-SS -and Verify-SC) {
+        return $true
+    }
+    else {
+        return $false
+    }
+}
+
 function Install-Apps {
 
     [CmdletBinding()]
@@ -302,10 +329,24 @@ function Install-Apps {
             return $true
         })]
         [System.IO.FileInfo] 
-        $OfficeLoc = '.\Office\Run-Me.cmd'
+        $OfficeLoc = '.\Office\Run-Me.cmd',
+
+        [Parameter(Mandatory=$false,
+        Position = 8,
+        HelpMessage='This option only installs what isnt already installed')] 
+        [bool] 
+        $Auto = $false
     )
     begin{
-
+        if ($Auto) {
+            Write-Host "Running Installs Automatically"
+            $Chrome = !Verify-Chrome
+            Write-Host "Skip Chrome: $Chrome"
+            $SC = !Verify-SC
+            Write-Host "Skip ScreenConnect: $SC"
+            $SS = !Verify-SS
+            Write-Host "Skip SmartSheild: $SS"
+        }
     }
     process{
         if ($Chrome -eq $true) {
@@ -333,7 +374,7 @@ function Install-Apps {
                 Write-LogError -LogPath $sLogFile -Message "Unable to install Smart Sheild" $true $true
             }
         }
-        if ($Chrome -eq $true) {
+        if ($Office -eq $true) {
             try {
                 Start-Process .\Office\Run-Me.cmd -Wait
             }
@@ -345,21 +386,26 @@ function Install-Apps {
     
 }
 
-function Verify-WindowsUpdate {
+#----------------------------------------------------------[Windows Update]--------------------------------------------------------
+function Verify-DisableWU {
     if ( (Get-Service -Name 'bits' | Select StartType ).StartType -eq 'Disabled') {
-        return $false
+        return $true
     }
-    return $true
+    return $false
 }
 
 function Remove-WindowsUpdate {
 
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$false,Position=0)] [bool] $DisableSchTasks = $false #add this later
+        [Parameter(Mandatory=$false,Position=0)] [bool] $Auto = $false
     )
 
-    if (Verify-WindowsUpdateDisabled) {
+    if ($Auto) {
+        if ( (!Verify-DisableWU) ) {
+            Remove-WindowsUpdate
+        }
+    }else{
         Stop-Service -Name "bits"
         Set-Service -Name "bits" -StartupType Disabled
 
@@ -372,8 +418,9 @@ function Remove-WindowsUpdate {
     
 }
 
+#----------------------------------------------------------[User Settings]----------------------------------------------------------
 function Install-Desktop {
-    if ( -not (Test-Path -Path C:\bginfo)) {
+    if ( -not (Verify-DesktopInstall)) {
         xcopy /E bginfo\* C:\bginfo
         xcopy C:\bginfo\Startup.lnk "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\"
         schtasks /create /ru "nt authority\system" /tn "WU" /tr "C:\bginfo\WU.cmd" /rl highest /sc onlogon /F
@@ -382,17 +429,39 @@ function Install-Desktop {
     }    
 }
 
+function Verify-DesktopInstall {
+    Test-Path -Path C:\bginfo
+}
+
 function Install-AutoLogin {
 
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$false,Position=0)] [bool] $UserName = $env:COMPUTERNAME,
-        [Parameter(Mandatory=$false,Position=0)] [bool] $Password = 'tirepower'
+        [Parameter(Mandatory=$false,Position=0)] [string] $UserName = $env:COMPUTERNAME,
+        [Parameter(Mandatory=$false,Position=1)] [string] $Password = 'tirepower'
     )
     
     $RegPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
     Set-ItemProperty $RegPath "AutoAdminLogon" -Value "1" -type String 
-    Set-ItemProperty $RegPath "DefaultUsername" -Value "$DefaultUsername" -type String 
-    Set-ItemProperty $RegPath "DefaultPassword" -Value "$DefaultPassword" -type String
+    Set-ItemProperty $RegPath "DefaultUsername" -Value $Username -type String 
+    Set-ItemProperty $RegPath "DefaultPassword" -Value "$Password" -type String
+
+}
+
+#----------------------------------------------------------[Clean Up]--------------------------------------------------------------
+function Deploy-PatronCleanUp {
+
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$false,Position=0)] [ParameterType] $all = $true
+    )
+    
+    if ($all) {
+        net user /delete defaultuser0
+        del /F /Q C:\ctsrcpgn.txt
+        del /F /Q C:\nsislog.txt
+        del /F /Q "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Smart Shield"
+    }
+
 
 }
