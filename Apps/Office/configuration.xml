@@ -16,7 +16,7 @@
 
 <Configuration>
   <Add OfficeClientEdition="64" Channel="PerpetualVL2019">
-    <Product ID="Standard2019Volume" PIDKEY="P7NC4-K3X6B-D9VP7-YJKPM-X4TMJ" >
+    <Product ID="Standard2019Volume" PIDKEY="Hidden" >
       <Language ID="en-us" />
 	  <ExcludeApp ID="Access" />
 	  <ExcludeApp ID="Groove" />
